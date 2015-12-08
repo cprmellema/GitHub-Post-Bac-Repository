@@ -41,3 +41,11 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+#Cooper additions
+*.mat
+*.fig
+Rat\ experiment\ (Sum2015-present)
+*.zip
+*.avi
+*.asv
