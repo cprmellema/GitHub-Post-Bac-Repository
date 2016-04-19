@@ -9,7 +9,12 @@ output.Differences = SumTest2(spikes, backstep);
 a = GLMtest( spikes, 'normal', 'identity', backstep, 1 );
 output.GLMtest =a.test;
 
-output.Entropy = findAlldHNs( spikes, backstep );
+b = GLMtest( spikes, 'poisson', 'log', backstep, 1 );
+output.GLMtest =b.test;
+
+%output.Entropy = findAlldHNs( spikes, backstep );
+
+output.TransferEntropy = TEfunction(spikes,3);
 
 end
 

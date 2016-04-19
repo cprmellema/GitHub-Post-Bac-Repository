@@ -42,7 +42,7 @@ p.rec_neuron=1; %neuron to trigger stimulation
 p.cols={'k','r','b'}; %colors for group-related plots
 
 %both numbers below need to be divisible by 3 for groups and pools
-p.N=30; %total number of neurons in net MUST BE DIVISIBLE BY 3
+p.N=6; %total number of neurons in net MUST BE DIVISIBLE BY 3
 
 %Correlogram parameters (to ba sampled from spiking)
 p.Plast_bin_center=-250:250; %resolution for building histograms of delta t's

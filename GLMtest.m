@@ -84,11 +84,13 @@ output.spikesprime=spikesprime;
 %'backstep' number of spikes of all units!=k fitted to the actual
 %spiking of unit k
 
+coeff=cell(1,n);
+
 for k=1:n
     spikes2=spikesprime;
     spikes0=spikes(:,k);
     
-    [~,originaldeviances(1,k),~]= glmfit(spikes2,spikes0,distrib);
+        [coeff{1,k},originaldeviances(1,k),stats(1,k)]= glmfit(spikes2,spikes0,distrib,link);
   
 %     meansqerror(1,k)=(((sum((stats.resid.^2)))/((size(stats(1,k).resid,1))))^(1/2));
 end
@@ -97,9 +99,9 @@ end
 %These outputs are the coefficients of the model and the deviances
 %of the model for each unit
 
-% output.stats=stats;
+output.stats=stats;
 % %output.meansqerror=meansqerror;
-% output.coefficients=coeff;
+output.coefficients=coeff;
 % output.originaldeviances=originaldeviances;
 
 %%%% Calculating the change in deviance when a unit is dropped from

@@ -5,7 +5,8 @@ function [ sensitivity, specificity, thresholds, thresholds2, TP, FN,FP,TN] = se
 
 thresholds=min(predictors):((max(predictors)-min(predictors))/parts):max(predictors);
 thresholds2=min(realconnections):((max(realconnections)-min(realconnections))/parts):max(realconnections);
-    
+%thresholds2=0;
+
 sensitivity=zeros(length(thresholds2),length(thresholds));
 specificity=sensitivity;
 TP=sensitivity;
@@ -23,13 +24,13 @@ for z=1:length(thresholds2)
             for k=1:n
                 %TP=true positives, FP=false positives, FN=false negatives,
                 %TN=true negatives
-                if predictors(j,k)>thresholds(i)&&realconnections(j,k)>=thresholds2(z)
+                if predictors(j,k)>thresholds(i)&&realconnections(j,k)>thresholds2(z)
                     TP(z,i)=TP(z,i)+1;
-                elseif predictors(j,k)<thresholds(i)&&realconnections(j,k)>=thresholds2(z)
+                elseif predictors(j,k)<=thresholds(i)&&realconnections(j,k)>thresholds2(z)
                     FN(z,i)=FN(z,i)+1;
-                elseif predictors(j,k)>thresholds(i)&&realconnections(j,k)<thresholds2(z)
+                elseif predictors(j,k)>thresholds(i)&&realconnections(j,k)<=thresholds2(z)
                     FP(z,i)=FP(z,i)+1;
-                elseif predictors(j,k)<thresholds(i)&&realconnections(j,k)<thresholds2(z)
+                elseif predictors(j,k)<=thresholds(i)&&realconnections(j,k)<=thresholds2(z)
                     TN(z,i)=TN(z,i)+1;      
                 end
 

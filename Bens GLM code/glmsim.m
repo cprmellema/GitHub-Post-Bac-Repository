@@ -17,15 +17,15 @@ function [y, tspks, rho, dev] = glmsim(processed, model, data, maxspks)
 	%  
 	%Test code:
 	%	%Load test preprocessed data
-% 		pre = load('./testdata/test_preprocess_spline_short.mat');
-% 		const = 'on';
-% 		nK_sp = 50; 
-% 		nK_pos = 10;
-% 		dt_sp = 0.002;
-% 		dt_pos = 0.05;
-% 		data = filters_sp_pos(pre.processed, nK_sp, nK_pos, dt_sp, dt_pos);
-% 		model = MLE_glmfit(data, const);
-% 		trains = glmsim(processed, model, data);
+	%	pre = load('./testdata/test_preprocess_spline_short.mat');
+	%	const = 'on';
+	%	nK_sp = 50; 
+	%	nK_pos = 10;
+	%	dt_sp = 0.002;
+	%	dt_pos = 0.05;
+	%	data = filters_sp_pos(pre.processed, nK_sp, nK_pos, dt_sp, dt_pos);
+	%	model = MLE_glmfit(data, const);
+	%	trains = glmsim(processed, model, data);
 
 	if (nargin < 4) maxspks = 0; end
 	bs = processed.binsize;
@@ -53,7 +53,7 @@ function [y, tspks, rho, dev] = glmsim(processed, model, data, maxspks)
 		spikemuas(idx).times = [0];    
 	end
 	%for each unit
-	for i = 1000
+	for i = 1:nU
 		%extract all the unit's filters
 		b_hat = model.b_hat(i,:);
 		%and the spike history filter in particular
@@ -63,7 +63,7 @@ function [y, tspks, rho, dev] = glmsim(processed, model, data, maxspks)
 		%compute the component of mu = e^eta that comes from the remaining filters used
 		mu = glmval(b_hat', squeeze(data.X(i,:,:)), 'log');
 		%then for each data point
-		for j = 1:1000
+		for j = 1:N
 			%compute mu that incorporates the current spike history
 			mu_sp = mu(j)*exp(sp_hist*k_sp');
 			%then sample y ~ Pn(exp(eta)) to decide if we spike or not
@@ -79,8 +79,7 @@ function [y, tspks, rho, dev] = glmsim(processed, model, data, maxspks)
 				mu_sp;
 				yij;
 				if yij > 1e6
-% 					display(['too many spikes per time bin: bin #: ' num2str(j) ' n. spikes: ' num2str(yij)])
-                    yij=10;
+					display(['too many spikes per time bin: bin #: ' num2str(j) ' n. spikes: ' num2str(yij)])
 				end
 				sptime = bs*(j+0.005*(1:yij)');
 				spikemuas(i).times = [spikemuas(i).times; sptime];
