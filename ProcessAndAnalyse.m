@@ -26,8 +26,15 @@ output.Covariance = cov( samplethis );
 
 output.Differences = SumTest2(samplethis, backstep);
 
-a = GLMtest( samplethis, 'normal', 'identity', backstep, 1 );
-output.GLMtest =a.test;
+tic
+a = GLMtest( toBsampled, 'normal', 'identity', 1 , 30 );
+noisytests.LM =a.test;
+
+b = GLMtest( toBsampled, 'poisson', 'log', 1 , 30 );
+noisytests.GLM =b.test;
+
+toc
+beep
 
 output.Entropy = findAlldHNs( samplethis, backstep );
 toc

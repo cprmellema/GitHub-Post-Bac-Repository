@@ -1,13 +1,13 @@
 noisysimtests.real=J;
 
-binnedspikes=times2binned(spikes,0.05);
+binnedspikes=timematrix2spikes(spikes',10);
 
 noisysimtests.Covariance = cov( binnedspikes );
 
 a = GLMtest( binnedspikes, 'normal', 'identity', 20, 1 );
-output.GLMtest =a.test;
+noisysimtests.LMtest =a.test;
 
 b = GLMtest( binnedspikes, 'poisson', 'log', 20, 1 );
-output.GLMtest =b.test;
+noisysimtests.GLMtest =b.test;
 
-output.TransferEntropy = TEfunction(spikes,20);
+noisysimtests.TransferEntropy = TEfunction(binnedspikes,20);

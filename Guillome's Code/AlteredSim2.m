@@ -27,8 +27,8 @@ online_plot_flag=1;
 p.stim_switch=1;
 p.load_groups_switch=1; %THIS now controls an architecture load
 p.load_path='./data.mat'; %must contain a structure "arch' with initial connectivity matrices J0,K0, J and K
-p.T_total=120;%seconds ' length of total sim
-p.T_batch_size=120;%seconds ' record things at every batch end
+p.T_total=60;%seconds ' length of total sim
+p.T_batch_size=5;%seconds ' record things at every batch end
 p.dt=0.5; %(ms) temporal rez
 p.num_batch=p.T_total/p.T_batch_size;
 p.num_batch_steps=p.T_batch_size*1000/p.dt;
@@ -42,7 +42,7 @@ p.rec_neuron=1; %neuron to trigger stimulation
 p.cols={'k','r','b'}; %colors for group-related plots
 
 %both numbers below need to be divisible by 3 for groups and pools
-p.N=6; %total number of neurons in net MUST BE DIVISIBLE BY 3
+p.N=120; %total number of neurons in net MUST BE DIVISIBLE BY 3
 
 %Correlogram parameters (to ba sampled from spiking)
 p.Plast_bin_center=-250:250; %resolution for building histograms of delta t's
@@ -58,14 +58,14 @@ p.ext_amplitude=[100,100,100]; %amplitude of envelope (Hz);
 p.ext_offset=[0,2*pi/3,4*pi/3];
 
 %EXTERNAL RATE FUNCTIONS (BOUTS)
-% p.stim_type=1; %1=BOUTS 0=SINE
-% p.baseline1=0; %(Hz) baseline firing rate --> Now see p.net_rate
-% p.peaks1=[0.05,100]; %(Hz) minimum and maximum height of peaks
-% p.peak_dur1=[5,100]; %(ms) minimum and maximum of peak width
-% p.bout_dur1=[900,4000]; %(ms) minimum and maximum duration of activation bouts (ie duration of consecutive peaks)
-% p.bout_freq1=0.13; %bouts / second (poisson distributed)
-% p.ramp_dur=400; %ms
-% p.ramp_ends=[0.1,5];
+p.stim_type=0; %1=BOUTS 0=SINE
+p.baseline1=0; %(Hz) baseline firing rate --> Now see p.net_rate
+p.peaks1=[0.05,100]; %(Hz) minimum and maximum height of peaks
+p.peak_dur1=[5,100]; %(ms) minimum and maximum of peak width
+p.bout_dur1=[900,4000]; %(ms) minimum and maximum duration of activation bouts (ie duration of consecutive peaks)
+p.bout_freq1=0.13; %bouts / second (poisson distributed)
+p.ramp_dur=400; %ms
+p.ramp_ends=[0.1,5];
 
 %SYNAPSES
 p.tau_syn=5; %(ms) decay-time of synapse 

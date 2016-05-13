@@ -21,21 +21,21 @@
 %PARAMETERS
 
 %simulation parameters
-p.filename='testage_sin_BCI_N100_1';
+p.filename='testage_sin_5min';
 p.file_output='./output_V4/';
 online_plot_flag=1;
 p.stim_switch=1;
-p.load_groups_switch=0; %THIS now controls an architecture load
+p.load_groups_switch=1; %THIS now controls an architecture load
 p.load_path='./data.mat'; %must contain a structure "arch' with initial connectivity matrices J0,K0, J and K
-p.T_total=30;%seconds ' length of total sim
-p.T_batch_size=2;%seconds ' record things at every batch end
+p.T_total=360;%seconds ' length of total sim
+p.T_batch_size=5;%seconds ' record things at every batch end
 p.dt=0.5; %(ms) temporal rez
 p.num_batch=p.T_total/p.T_batch_size;
 p.num_batch_steps=p.T_batch_size*1000/p.dt;
 p.ref_t=0; %refractory period (ms) (for spike generation.
 
 %Stimulation switch
-p.stim_del=10; %delay for stimulation (ms)
+p.stim_del=360000; %delay for stimulation (ms)
 p.num_del_steps=p.stim_del/p.dt;
 p.stim_size=10000; %Amount to rize rate of stimulated cells 
 p.rec_neuron=1; %neuron to trigger stimulation
@@ -51,21 +51,21 @@ p.Plast_bin_center=-250:250; %resolution for building histograms of delta t's
 p.net_rate=5; %(Hz) background rates for groups of neurons in network
 
 %EXTERNAL RATE FUNCTIONS (SINE)
-p.stim_type=0; %1=BOUTS 0=SINE
-p.baseline=0; %(Hz)
+p.stim_type=2; %1=BOUTS 0=SINE 2=noise
+p.baseline=5; %(Hz)
 p.ext_freq=[2,2,2]; %envelope frequencies (Hz);
 p.ext_amplitude=[100,100,100]; %amplitude of envelope (Hz);
 p.ext_offset=[0,2*pi/3,4*pi/3];
 
 %EXTERNAL RATE FUNCTIONS (BOUTS)
-% p.stim_type=1; %1=BOUTS 0=SINE
-% p.baseline1=0; %(Hz) baseline firing rate --> Now see p.net_rate
-% p.peaks1=[0.05,100]; %(Hz) minimum and maximum height of peaks
-% p.peak_dur1=[5,100]; %(ms) minimum and maximum of peak width
-% p.bout_dur1=[900,4000]; %(ms) minimum and maximum duration of activation bouts (ie duration of consecutive peaks)
-% p.bout_freq1=0.13; %bouts / second (poisson distributed)
-% p.ramp_dur=400; %ms
-% p.ramp_ends=[0.1,5];
+p.stim_type=0; %1=BOUTS 0=SINE
+p.baseline1=5; %(Hz) baseline firing rate --> Now see p.net_rate
+p.peaks1=[0.05,100]; %(Hz) minimum and maximum height of peaks
+p.peak_dur1=[5,100]; %(ms) minimum and maximum of peak width
+p.bout_dur1=[900,4000]; %(ms) minimum and maximum duration of activation bouts (ie duration of consecutive peaks)
+p.bout_freq1=0.13; %bouts / second (poisson distributed)
+p.ramp_dur=400; %ms
+p.ramp_ends=[0.1,5];
 
 %SYNAPSES
 p.tau_syn=5; %(ms) decay-time of synapse 
@@ -74,11 +74,11 @@ p.net_del_sig=1; %(ms) spread of network delays
 p.dendrite_del=5; %(ms)
 
 %STDP PARAMS
-p.eta=5e-7; %learning rate time scale
+p.eta=0; %5e-7; %learning rate time scale
 p.w_in=4;
 p.w_out=-0.5;
 p.w_min=0;
-p.w_max=0.01;
+p.w_max=0.02; %0.01
 p.gamma=0.1;
 % p.W=@STDPexp_del; %STDP rule
 p.W=@(x,y)STDPJ(x,y,p.w_max,p.gamma);
@@ -89,7 +89,7 @@ p.net_connect_prob=.3; %prob of connection in network
 p.net_w_init=0.005;%0.015;%0.01, 0.015;
 
 %GENERATING VARIABLES-------------------------------
-% generating connectivity matrices
+%generating connectivity matrices
 p.J0=double(rand(p.N)<p.net_connect_prob);
 for i=1:p.N; p.J0(i,i)=0; end; %removing autapses
 p.n_net=sum(sum(p.J0));
@@ -98,9 +98,7 @@ J=p.net_w_init*p.J0;
 %_-_-_-_-_-_-_-_-_
 % %Artificial assemblies
 if p.load_groups_switch==1
-%     %load(p.load_path);
-%     J=load('smallconnections');
-%     J0=J;
+%     load(p.load_path);
 %     p.J0=arch.J0;
 %     J=arch.J;
     %to make artificial groups, uncomment below
@@ -109,6 +107,8 @@ if p.load_groups_switch==1
     J(2*p.N/3+1:end,2*p.N/3+1:end)=p.J0(2*p.N/3+1:end,2*p.N/3+1:end)*0.0125;
 end
 
+load('Connections.mat')
+J=Connections;
 %_-_-_-_-_-_-_-_-_
 
 %generating delays
@@ -131,7 +131,6 @@ Rates=zeros(p.N,p.num_batch+1);
 ISI_counts=zeros(3,3,length(p.Plast_bin_center),p.num_batch);
 mean_ext_rates=zeros(3,p.num_batch);
 RATES_array=zeros(3,p.num_batch_steps,p.num_batch);
-
 
 
 %Synaptic spike queues and rolling containers
@@ -200,8 +199,22 @@ if p.stim_type==1
         end
         toc
     end
+    
+    
     Xrates=Xrates(:,1:num_total_t_steps);
     display('Done generating rates')
+end
+
+%FOR NOISE
+
+if p.stim_type==2
+   t=length(Xtime);
+   signal=5*ones(1,t); %background input
+   sigma=0.5; %noise sd
+   for g=1:3 %loop over groups
+       noisy=5+5*mean(mean(p.ext_amplitude))*signal+sigma(randn(size(signal))); %noisy signal
+       Xrates(:,g)= noisy;
+   end
 end
 
 %test plot
@@ -238,6 +251,8 @@ if online_plot_flag==1
     caxis([p.w_min,p.w_max])
     pause(0.5)
 end
+
+
 
 for batch=1:p.num_batch
     display(['Processing batch # ' num2str(batch) '/' num2str(p.num_batch)])
@@ -440,10 +455,10 @@ for batch=1:p.num_batch
             %$$$$$$$$$$$$$$$$$$$$
             %PLASTICITY
             %UPDATING J MATRIX WITH OUTGOING SPIKE RULE
-%             if p.w_out~=0
-%                 J(ind,:)=J(ind,:)+p.eta*p.w_out;
-%                 J=J.*p.J0;
-%             end
+            if p.w_out~=0
+                J(ind,:)=J(ind,:)+p.eta*p.w_out;
+                J=J.*p.J0;
+            end
             %$$$$$$$$$$$$$$$$$$$$
             
             %Chec rec cell for triggered stim------------------
@@ -455,8 +470,8 @@ for batch=1:p.num_batch
         
         %PLASTICITY $$$$$$$$
         % Apply J bounds
-%         J=min(J,p.w_max*ones(size(J)));
-%         J=max(J,p.w_min*ones(size(J)));
+        J=min(J,p.w_max*ones(size(J)));
+        J=max(J,p.w_min*ones(size(J)));
         %$$$$$$$$$$$$$$$$$$$$$
         
         %TEMPORARY STORING_______________
@@ -478,132 +493,132 @@ for batch=1:p.num_batch
     toc
     
     %PLOTS for this batch+++++++++++++
-%     if online_plot_flag==1
-%         subplot(3,2,3)
-%         set(gca,'FontSize',20)
-%         pcolor(J)
-%         xlabel 'presyn'
-%         ylabel 'postsyn'
-%         title 'J'
-%         caxis([p.w_min,p.w_max])
-% 
-%         subplot(3,2,2)
-%         set(gca,'FontSize',20)
-%         hold all
-%         for it=1:3
-%             plot(linspace(time(batch),time(batch+1),p.num_batch_steps),RATES(it,:),p.cols{it})
-%         end
-%         hold off
-%         axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 max(max(RATES))+1])
-%         xlabel 'time (s)'
-%         ylabel 'Ext rate (Hz)'
-%         title(['External drive Raster ; BATCH#' num2str(batch) '/' num2str(p.num_batch)])
-% 
-%         subplot(3,2,4)
-%         set(gca,'FontSize',20)
-%         for n=1:p.N/3
-%             plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%                 n*ones(spike_entry(n)-1,1),[p.cols{1} '.'])
-%             hold on
-%             if p.stim_switch==1 && n==p.rec_neuron
-%                 plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%                 n*ones(spike_entry(n)-1,1),'ro')
-%             end
-%         end
-%         for n=p.N/3+1:2*p.N/3
-%             plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%                 n*ones(spike_entry(n)-1,1),['.',p.cols{2}])
-%             hold on
-%         end
-%         for n=2*p.N/3+1:p.N
-%             plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%                 n*ones(spike_entry(n)-1,1),['.',p.cols{3}])
-%             hold on
-%         end
-% 
-%         hold off
-%         axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 p.N+1])
-%         xlabel 'time (s)'
-%         ylabel 'neuron #'
-%         title 'Network Raster'
-% 
-%         subplot(3,2,5)
-%         set(gca,'FontSize',20)
-%         for n=1:p.N/3
-%             plot(time(1:batch+1),Rates(n,1:batch+1),'k--')
-%             hold on
-%         end
-%         plot(time(1:batch+1),mean(Rates(1:p.N/3,1:batch+1),1),'k','LineWidth',2)
-%          for n=p.N/3+1:2*p.N/3
-%             plot(time(1:batch+1),Rates(n,1:batch+1),'r--')
-%             hold on
-%          end
-%          plot(time(1:batch+1),mean(Rates(p.N/3+1:2*p.N/3,1:batch+1),1),'r','LineWidth',2)
-%          for n=2*p.N/3+1:p.N
-%             plot(time(1:batch+1),Rates(n,1:batch+1),'m--')
-%             hold on
-%          end
-%         plot(time(1:batch+1),mean(Rates(2*p.N/3+1:end,1:batch+1),1),'r','LineWidth',2)
-%         hold off
-%         xlabel 'Time (s)'
-%         ylabel 'Firing Rate (Hz)'
-%         title(['Averaged firing rates'])  
-%         axis([0 p.T_total 0 100])
-% 
-%         subplot(3,2,6)
-%         set(gca,'FontSize',20)
-%         for n=1:p.N/3
-%             Ptak=ref_net(logical(p.J0(:,n)));
-%             for m=Ptak
-%                 if m<=p.N/3
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'k')
-%                 else
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%                 end
-%                 hold on
-%             end
-%         end
-%         for n=p.N/3+1:2*p.N/3
-%             Ptak=ref_net(logical(p.J0(:,n)));
-%             for m=Ptak
-%                 if m<=p.N/3
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%                 elseif m>2*p.N/3
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%                 else
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'r')
-%                 end
-%                 hold on
-%             end
-%         end
-%         for n=2*p.N/3+1:p.N
-%             Ptak=ref_net(logical(p.J0(:,n)));
-%             for m=Ptak
-%                 if m>2*p.N/3
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'m')
-%                 else
-%                     plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%                 end
-%                 hold on
-%             end
-%         end
-%         hold off
-%         xlabel 'Time (s)'
-%         ylabel 'J_{ij}'
-%         title(['Synaptic weigths'])  
-%         axis([0 p.T_total p.w_min p.w_max])
-% 
-%         pause(0.5)
-%     end
-%     
-%     %saving things
-%     save([p.file_output, p.filename], 'p', 'Jtraj','time','Rates','spikes','batch','spike_entry','ISI_counts','mean_ext_rates','RATES_array')
- end %batch loop
+    if online_plot_flag==1
+        subplot(3,2,3)
+        set(gca,'FontSize',20)
+        pcolor(J)
+        xlabel 'presyn'
+        ylabel 'postsyn'
+        title 'J'
+        caxis([p.w_min,p.w_max])
+
+        subplot(3,2,2)
+        set(gca,'FontSize',20)
+        hold all
+        for it=1:3
+            plot(linspace(time(batch),time(batch+1),p.num_batch_steps),RATES(it,:),p.cols{it})
+        end
+        hold off
+        axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 max(max(RATES))+1])
+        xlabel 'time (s)'
+        ylabel 'Ext rate (Hz)'
+        title(['External drive Raster ; BATCH#' num2str(batch) '/' num2str(p.num_batch)])
+
+        subplot(3,2,4)
+        set(gca,'FontSize',20)
+        for n=1:p.N/3
+            plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+                n*ones(spike_entry(n)-1,1),[p.cols{1} '.'])
+            hold on
+            if p.stim_switch==1 && n==p.rec_neuron
+                plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+                n*ones(spike_entry(n)-1,1),'ro')
+            end
+        end
+        for n=p.N/3+1:2*p.N/3
+            plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+                n*ones(spike_entry(n)-1,1),['.',p.cols{2}])
+            hold on
+        end
+        for n=2*p.N/3+1:p.N
+            plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+                n*ones(spike_entry(n)-1,1),['.',p.cols{3}])
+            hold on
+        end
+
+        hold off
+        axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 p.N+1])
+        xlabel 'time (s)'
+        ylabel 'neuron #'
+        title 'Network Raster'
+
+        subplot(3,2,5)
+        set(gca,'FontSize',20)
+        for n=1:p.N/3
+            plot(time(1:batch+1),Rates(n,1:batch+1),'k--')
+            hold on
+        end
+        plot(time(1:batch+1),mean(Rates(1:p.N/3,1:batch+1),1),'k','LineWidth',2)
+         for n=p.N/3+1:2*p.N/3
+            plot(time(1:batch+1),Rates(n,1:batch+1),'r--')
+            hold on
+         end
+         plot(time(1:batch+1),mean(Rates(p.N/3+1:2*p.N/3,1:batch+1),1),'r','LineWidth',2)
+         for n=2*p.N/3+1:p.N
+            plot(time(1:batch+1),Rates(n,1:batch+1),'m--')
+            hold on
+         end
+        plot(time(1:batch+1),mean(Rates(2*p.N/3+1:end,1:batch+1),1),'r','LineWidth',2)
+        hold off
+        xlabel 'Time (s)'
+        ylabel 'Firing Rate (Hz)'
+        title(['Averaged firing rates'])  
+        axis([0 p.T_total 0 100])
+
+        subplot(3,2,6)
+        set(gca,'FontSize',20)
+        for n=1:p.N/3
+            Ptak=ref_net(logical(p.J0(:,n)));
+            for m=Ptak
+                if m<=p.N/3
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'k')
+                else
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+                end
+                hold on
+            end
+        end
+        for n=p.N/3+1:2*p.N/3
+            Ptak=ref_net(logical(p.J0(:,n)));
+            for m=Ptak
+                if m<=p.N/3
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+                elseif m>2*p.N/3
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+                else
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'r')
+                end
+                hold on
+            end
+        end
+        for n=2*p.N/3+1:p.N
+            Ptak=ref_net(logical(p.J0(:,n)));
+            for m=Ptak
+                if m>2*p.N/3
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'m')
+                else
+                    plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+                end
+                hold on
+            end
+        end
+        hold off
+        xlabel 'Time (s)'
+        ylabel 'J_{ij}'
+        title(['Synaptic weigths'])  
+        axis([0 p.T_total p.w_min p.w_max])
+
+        pause(0.5)
+    end
+    
+    %saving things
+    save([p.file_output, p.filename], 'p', 'Jtraj','time','Rates','spikes','batch','spike_entry','ISI_counts','mean_ext_rates','RATES_array')
+end %batch loop
 
 %% Final run plots below
 
 %some vars
-% J=squeeze(Jtraj(:,:,batch+1));
+J=squeeze(Jtraj(:,:,batch+1));
 RATES=squeeze(RATES_array(:,:,batch));
 ref_net=1:p.N;
 
@@ -624,30 +639,30 @@ ext_xcorr=zeros(3,3,length(rate_lags)); %xcorr of external rates
 C_ext_xcorr=zeros(3,3,length(rate_lags)); 
 
 figure;
-% for g1=1:3
-%     for g2=1:3
-%         %computing xcorr of external rates
-%         ext_xcorr(g1,g2,:)=xcorr(Xrates(g2,:)/1000,Xrates(g1,:)/1000,maxlags,'none');
-%         
-%         %plots
-%         subplot(3,3,sub2ind([3,3],g1,g2))
-%         set(gca,'FontSize',13)
-%         
-%         %from ISI
-%         plot(p.Plast_bin_center,squeeze(mean_ISI_counts(g1,g2,:))/num_connects(g1,g2),'k.')
-%         hold on
-%         
-%         %from Rates
-%         plot(rate_lags,squeeze(ext_xcorr(g1,g2,:))*p.dt/p.num_batch,'r')
-%         
-%         plot([0,0],[0,1],'k--')
-%         hold off
-%         title([num2str(g2) '-->' num2str(g1)])
-%         xlabel 'ISI(ms)'
-%         ylabel 'mean count'
-% %         axis([p.Plast_bin_center(1) p.Plast_bin_center(end) 0 300])%max(max(max(mean_ISI_counts)))])
-%     end
-% end
+for g1=1:3
+    for g2=1:3
+        %computing xcorr of external rates
+        ext_xcorr(g1,g2,:)=xcorr(Xrates(g2,:)/1000,Xrates(g1,:)/1000,maxlags,'none');
+        
+        %plots
+        subplot(3,3,sub2ind([3,3],g1,g2))
+        set(gca,'FontSize',13)
+        
+        %from ISI
+        plot(p.Plast_bin_center,squeeze(mean_ISI_counts(g1,g2,:))/num_connects(g1,g2),'k.')
+        hold on
+        
+        %from Rates
+        plot(rate_lags,squeeze(ext_xcorr(g1,g2,:))*p.dt/p.num_batch,'r')
+        
+        plot([0,0],[0,1],'k--')
+        hold off
+        title([num2str(g2) '-->' num2str(g1)])
+        xlabel 'ISI(ms)'
+        ylabel 'mean count'
+%         axis([p.Plast_bin_center(1) p.Plast_bin_center(end) 0 300])%max(max(max(mean_ISI_counts)))])
+    end
+end
 
 %
 % full shinanigns plots
@@ -660,149 +675,149 @@ ylabel 'postsyn'
 title 'Initial J'
 caxis([p.w_min,p.w_max])
 
-% subplot(3,2,3)
-% set(gca,'FontSize',20)
-% pcolor(J)
-% xlabel 'presyn'
-% ylabel 'postsyn'
-% title 'J'
-% caxis([p.w_min,p.w_max])
+subplot(3,2,3)
+set(gca,'FontSize',20)
+pcolor(J)
+xlabel 'presyn'
+ylabel 'postsyn'
+title 'J'
+caxis([p.w_min,p.w_max])
 
 subplot(3,2,2)
 set(gca,'FontSize',20)
 hold all
-% for it=1:3
-%     plot(linspace(time(batch),time(batch+1),p.num_batch_steps),RATES(it,:),p.cols{it})
-% end
-% hold off
-% axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 max(max(max(RATES_array)))+1])
-% xlabel 'time (s)'
-% ylabel 'Ext rate (Hz)'
-% title(['External drive Raster ; BATCH#' num2str(batch) '/' num2str(p.num_batch)])
-% 
-% subplot(3,2,4)
-% set(gca,'FontSize',20)
-% for n=1:p.N/3
-%     plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%         n*ones(spike_entry(n)-1,1),'k.')
-%     hold on
-%     if p.stim_switch==1 && n==p.rec_neuron
-%         plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%         n*ones(spike_entry(n)-1,1),'ro')
-%     end
-% end
-% for n=p.N/3+1:2*p.N/3
-%     plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%         n*ones(spike_entry(n)-1,1),'r.')
-%     hold on
-% end
-% for n=2*p.N/3+1:p.N
-%     plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
-%         n*ones(spike_entry(n)-1,1),'m.')
-%     hold on
-% end
-% hold off
-% axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 p.N+1])
-% xlabel 'time (s)'
-% ylabel 'neuron #'
-% title 'Network Raster'
-% 
-% subplot(3,2,5)
-% set(gca,'FontSize',20)
-% for n=1:p.N/3
-%     plot(time(1:batch+1),Rates(n,1:batch+1),'k--')
-%     hold on
-% end
-% plot(time(1:batch+1),mean(Rates(1:p.N/3,1:batch+1),1),'k','LineWidth',2)
-%  for n=p.N/3+1:2*p.N/3
-%     plot(time(1:batch+1),Rates(n,1:batch+1),'r--')
-%     hold on
-%  end
-%  plot(time(1:batch+1),mean(Rates(p.N/3+1:2*p.N/3,1:batch+1),1),'r','LineWidth',2)
-%  for n=2*p.N/3+1:p.N
-%     plot(time(1:batch+1),Rates(n,1:batch+1),'m--')
-%     hold on
-%  end
-% plot(time(1:batch+1),mean(Rates(2*p.N/3+1:end,1:batch+1),1),'r','LineWidth',2)
-% hold off
-% xlabel 'Time (s)'
-% ylabel 'Firing Rate (Hz)'
-% title(['Averaged firing rates'])  
-% axis([0 p.T_total 0 75])
-% 
-% subplot(3,2,6)
-% set(gca,'FontSize',20)
-% for n=1:p.N/3
-%     Ptak=ref_net(logical(p.J0(:,n)));
-%     for m=Ptak
-%         if m<=p.N/3
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'k')
-%         else
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%         end
-%         hold on
-%     end
-% end
-% for n=p.N/3+1:2*p.N/3
-%     Ptak=ref_net(logical(p.J0(:,n)));
-%     for m=Ptak
-%         if m<=p.N/3
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%         elseif m>2*p.N/3
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%         else
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'r')
-%         end
-%         hold on
-%     end
-% end
-% for n=2*p.N/3+1:p.N
-%     Ptak=ref_net(logical(p.J0(:,n)));
-%     for m=Ptak
-%         if m>2*p.N/3
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'m')
-%         else
-%             plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
-%         end
-%         hold on
-%     end
-% end
-% hold off
-% xlabel 'Time (s)'
-% ylabel 'J_{ij}'
-% title(['Synaptic weigths'])  
-% axis([0 p.T_total p.w_min p.w_max])
+for it=1:3
+    plot(linspace(time(batch),time(batch+1),p.num_batch_steps),RATES(it,:),p.cols{it})
+end
+hold off
+axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 max(max(max(RATES_array)))+1])
+xlabel 'time (s)'
+ylabel 'Ext rate (Hz)'
+title(['External drive Raster ; BATCH#' num2str(batch) '/' num2str(p.num_batch)])
+
+subplot(3,2,4)
+set(gca,'FontSize',20)
+for n=1:p.N/3
+    plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+        n*ones(spike_entry(n)-1,1),'k.')
+    hold on
+    if p.stim_switch==1 && n==p.rec_neuron
+        plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+        n*ones(spike_entry(n)-1,1),'ro')
+    end
+end
+for n=p.N/3+1:2*p.N/3
+    plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+        n*ones(spike_entry(n)-1,1),'r.')
+    hold on
+end
+for n=2*p.N/3+1:p.N
+    plot(spikes(n,1:spike_entry(n)-1)/1000+(batch-1)*p.T_batch_size,...
+        n*ones(spike_entry(n)-1,1),'m.')
+    hold on
+end
+hold off
+axis([(batch-1)*p.T_batch_size,batch*p.T_batch_size 0 p.N+1])
+xlabel 'time (s)'
+ylabel 'neuron #'
+title 'Network Raster'
+
+subplot(3,2,5)
+set(gca,'FontSize',20)
+for n=1:p.N/3
+    plot(time(1:batch+1),Rates(n,1:batch+1),'k--')
+    hold on
+end
+plot(time(1:batch+1),mean(Rates(1:p.N/3,1:batch+1),1),'k','LineWidth',2)
+ for n=p.N/3+1:2*p.N/3
+    plot(time(1:batch+1),Rates(n,1:batch+1),'r--')
+    hold on
+ end
+ plot(time(1:batch+1),mean(Rates(p.N/3+1:2*p.N/3,1:batch+1),1),'r','LineWidth',2)
+ for n=2*p.N/3+1:p.N
+    plot(time(1:batch+1),Rates(n,1:batch+1),'m--')
+    hold on
+ end
+plot(time(1:batch+1),mean(Rates(2*p.N/3+1:end,1:batch+1),1),'r','LineWidth',2)
+hold off
+xlabel 'Time (s)'
+ylabel 'Firing Rate (Hz)'
+title(['Averaged firing rates'])  
+axis([0 p.T_total 0 75])
+
+subplot(3,2,6)
+set(gca,'FontSize',20)
+for n=1:p.N/3
+    Ptak=ref_net(logical(p.J0(:,n)));
+    for m=Ptak
+        if m<=p.N/3
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'k')
+        else
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+        end
+        hold on
+    end
+end
+for n=p.N/3+1:2*p.N/3
+    Ptak=ref_net(logical(p.J0(:,n)));
+    for m=Ptak
+        if m<=p.N/3
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+        elseif m>2*p.N/3
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+        else
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'r')
+        end
+        hold on
+    end
+end
+for n=2*p.N/3+1:p.N
+    Ptak=ref_net(logical(p.J0(:,n)));
+    for m=Ptak
+        if m>2*p.N/3
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'m')
+        else
+            plot(time(1:batch+1),squeeze(Jtraj(m,n,1:batch+1)),'b')
+        end
+        hold on
+    end
+end
+hold off
+xlabel 'Time (s)'
+ylabel 'J_{ij}'
+title(['Synaptic weigths'])  
+axis([0 p.T_total p.w_min p.w_max])
 
 
 
 %% Temporary plots
-% timz=linspace(0,p.T_batch_size,p.num_batch_steps);
-% cell_choice=p.N/3;
-% pre_net=ref_net(logical(p.J0(cell_choice,:)));
-% 
-% 
-% figure;
-% set(gca,'FontSize',20)
-% plot(timz,r_temp(cell_choice,:))
-% hold on
-% plot(timz,s_temp(cell_choice,:),'r')
-% plot(spikes(cell_choice,1:spike_entry(cell_choice)-1)/1000,0.001*mean(r_temp(cell_choice,:))*ones(spike_entry(cell_choice)-1,1),'k.')
-% for m=pre_net
-%     if m<=p.N/3
-%         plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'k+')
-%     elseif m>=2*p.N/3+1
-%         plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'b+')
-%     else
-%         plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'r+')
-%     end            
-% end
-% if p.stim_switch==1
-%     plot(spikes(p.rec_neuron,1:spike_entry(p.rec_neuron)-1)/1000,0.2*ones(1,spike_entry(p.rec_neuron)-1),'r.')
-% end
-% hold off
-% xlabel 'time (s))'
-% ylabel 'rate'
-% axis([0 timz(end) 0 max(r_temp(cell_choice,:))])
+timz=linspace(0,p.T_batch_size,p.num_batch_steps);
+cell_choice=p.N/3;
+pre_net=ref_net(logical(p.J0(cell_choice,:)));
+
+
+figure;
+set(gca,'FontSize',20)
+plot(timz,r_temp(cell_choice,:))
+hold on
+plot(timz,s_temp(cell_choice,:),'r')
+plot(spikes(cell_choice,1:spike_entry(cell_choice)-1)/1000,0.001*mean(r_temp(cell_choice,:))*ones(spike_entry(cell_choice)-1,1),'k.')
+for m=pre_net
+    if m<=p.N/3
+        plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'k+')
+    elseif m>=2*p.N/3+1
+        plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'b+')
+    else
+        plot((spikes(m,1:spike_entry(m)-1)+p.net_d(m))/1000,m/1000*ones(1,spike_entry(m)-1),'r+')
+    end            
+end
+if p.stim_switch==1
+    plot(spikes(p.rec_neuron,1:spike_entry(p.rec_neuron)-1)/1000,0.2*ones(1,spike_entry(p.rec_neuron)-1),'r.')
+end
+hold off
+xlabel 'time (s))'
+ylabel 'rate'
+axis([0 timz(end) 0 max(r_temp(cell_choice,:))])
 
 % figure;
 % set(gca,'FontSize',20)

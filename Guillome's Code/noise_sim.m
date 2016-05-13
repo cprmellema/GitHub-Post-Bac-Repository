@@ -21,13 +21,13 @@
 %PARAMETERS
 
 %simulation parameters
-p.filename='testage_sin_BCI_N100_1';
+p.filename='testage_noise_5min';
 p.file_output='./output_V4/';
 online_plot_flag=1;
 p.stim_switch=1;
 p.load_groups_switch=1; %THIS now controls an architecture load
 p.load_path='./data.mat'; %must contain a structure "arch' with initial connectivity matrices J0,K0, J and K
-p.T_total=90;%seconds ' length of total sim
+p.T_total=3;%seconds ' length of total sim
 p.T_batch_size=2;%seconds ' record things at every batch end
 p.dt=0.5; %(ms) temporal rez
 p.num_batch=p.T_total/p.T_batch_size;
@@ -109,7 +109,9 @@ if p.load_groups_switch==1
     J(p.N/3+1:2*p.N/3,p.N/3+1:2*p.N/3)=p.J0(p.N/3+1:2*p.N/3,p.N/3+1:2*p.N/3)*0.0125;
     J(2*p.N/3+1:end,2*p.N/3+1:end)=p.J0(2*p.N/3+1:end,2*p.N/3+1:end)*0.0125;
 end
-J=J2;
+
+load('Connections.mat')
+J=Connections;
 %_-_-_-_-_-_-_-_-_
 
 %generating delays
@@ -121,6 +123,7 @@ p.net_d=p.net_d.*p.J0;
 %useful reference vector
 ref_net=1:p.N;
 p.group_ind={1:p.N/3,p.N/3+1:2*p.N/3,2*p.N/3+1:p.N};
+%p.group_ind={1:p.N};
 p.back_buffer=p.Plast_bin_center(end); %time buffer for which to keep spikes from previous batches
 
 %CONTAINERS
@@ -415,15 +418,15 @@ for batch=1:p.num_batch
         r=p.net_rate/1000+s+ext; %UPDATE
         %---------------------------------------------
         %Triggered Stim---------------------------------
-        if p.stim_switch==1 && ~isempty(next_stim) && t_now>=next_stim(1)
-            r(p.N/3+1:2*p.N/3)=r(p.N/3+1:2*p.N/3)+p.stim_size;
-            if length(next_stim)>1
-                next_stim=next_stim(2:end);
-            else
-                next_stim=[];
-            end
-        end
-         %---------------------------------------------
+%         if p.stim_switch==1 && ~isempty(next_stim) && t_now>=next_stim(1)
+%             r(p.N/3+1:2*p.N/3)=r(p.N/3+1:2*p.N/3)+p.stim_size;
+%             if length(next_stim)>1
+%                 next_stim=next_stim(2:end);
+%             else
+%                 next_stim=[];
+%             end
+%         end
+          %---------------------------------------------
         
         %ROLLING THE DIE TO SEE WHO SPIKES IN NET (and adding then to
         %queues)

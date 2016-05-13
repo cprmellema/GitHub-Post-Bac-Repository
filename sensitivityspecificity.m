@@ -4,8 +4,8 @@ function [ sensitivity, specificity, thresholds, thresholds2, TP, FN,FP,TN] = se
 [m,n]=size(realconnections);
 
 thresholds=min(predictors):((max(predictors)-min(predictors))/parts):max(predictors);
-thresholds2=min(realconnections):((max(realconnections)-min(realconnections))/parts):max(realconnections);
-%thresholds2=0;
+% thresholds2=min(realconnections):((max(realconnections)-min(realconnections))/parts):max(realconnections);
+thresholds2=1;
 
 sensitivity=zeros(length(thresholds2),length(thresholds));
 specificity=sensitivity;

@@ -1,58 +1,81 @@
-% [Sn,Sp,thresholds]=sensitivityspecificity(J,noisyTE,100);
-[n,m]=size(J);
-real=reshape(J,1,m*n);
+[n,m]=size(sinsimtests.real);
+real=reshape(sinsimtests.real,1,m*n);
 real=normalize_connections(real);
-predicted=reshape(noisyTE,1,m*n);
+
+predicted=reshape(sinsimtests.TransferEntropy,1,m*n);
 predicted=normalize_connections(predicted);
+[Sn,Sp,~]=sensitivityspecificity(real,predicted,100);
 figure
-scatter(predicted,real)
+plot(Sn,1-Sp,'r')
 hold on
-plot(0.001:0.001:max(predicted),0.001:.001:max(predicted),'r')
-title('noisy TE')
+title('ROC curves - sinusoidal input')
+xlabel('1-Sp')
+ylabel('Sn')
+hold on
+
+predicted=reshape(sinsimtests.LMtest,1,m*n);
+predicted=normalize_connections(predicted);
+[Sn,Sp,~]=sensitivityspecificity(real,predicted,100);
+plot(Sn,1-Sp,'k')
+hold on
+
+
+predicted=reshape(sinsimtests.GLMtest,1,m*n);
+predicted=normalize_connections(predicted);
+[Sn,Sp,~]=sensitivityspecificity(real,predicted,100);
+plot(Sn,1-Sp,'b')
+hold on
+
+
+predicted=reshape(sinsimtests.Covariance,1,m*n);
+predicted=normalize_connections(predicted);
+[Sn,Sp,~]=sensitivityspecificity(real,predicted,100);
+plot(Sn,1-Sp,'g')
+hold on
+
+plot(0:0.01:1,0:0.01:1,'.m')
+
+figure
+subplot(2,2,1)
+[n,m]=size(sinsimtests.real);
+real=reshape(sinsimtests.real,1,m*n);
+real=normalize_connections(real);
+
+predicted=reshape(sinsimtests.TransferEntropy,1,m*n);
+predicted=normalize_connections(predicted);
+
+scatter(predicted,real)
 xlabel('predicted')
 ylabel('real')
+title('Transfer Entropy Scatter')
 
-% [Sn,Sp,thresholds]=sensitivityspecificity(ans.real,ans.GLMtest,100);
-% [Sn2,Sp2,thresholds]=sensitivityspecificity(ans2.real,ans2.GLMtest,100);
-% [Sn3,Sp3,thresholds]=sensitivityspecificity(ans3.real,ans3.GLMtest,100);
-% figure
-% plot(Sn,1-Sp)
-% hold on
-% plot(Sn2,1-Sp2)
-% hold on
-% plot(Sn3,1-Sp3)
-% hold on
-% plot(0.001:0.001:1,0.001:.001:1,'r')
-% title('Granger')
-% xlabel('1-Sp')
-% ylabel('Sn')
-% 
-% [Sn,Sp,thresholds]=sensitivityspecificity(ans.real,ans.Covariance,100);
-% [Sn2,Sp2,thresholds]=sensitivityspecificity(ans2.real,ans2.Covariance,100);
-% [Sn3,Sp3,thresholds]=sensitivityspecificity(ans3.real,ans3.Covariance,100);
-% figure
-% plot(Sn,1-Sp)
-% hold on
-% plot(Sn2,1-Sp2)
-% hold on
-% plot(Sn3,1-Sp3)
-% hold on
-% plot(0.001:0.001:1,0.001:.001:1,'r')
-% title('Covariances')
-% xlabel('1-Sp')
-% ylabel('Sn')
-% 
-% [Sn,Sp,thresholds]=sensitivityspecificity(ans.real,ans.Differences,100);
-% [Sn2,Sp2,thresholds]=sensitivityspecificity(ans2.real,ans2.Differences,100);
-% [Sn3,Sp3,thresholds]=sensitivityspecificity(ans3.real,ans3.Differences,100);
-% figure
-% plot(Sn,1-Sp)
-% hold on
-% plot(Sn2,1-Sp2)
-% hold on
-% plot(Sn3,1-Sp3)
-% hold on
-% plot(0.001:0.001:1,0.001:.001:1,'r')
-% title('Sums')
-% xlabel('1-Sp')
-% ylabel('Sn')
+subplot(2,2,2)
+
+predicted=reshape(sinsimtests.LMtest,1,m*n);
+predicted=normalize_connections(predicted);
+
+scatter(predicted,real)
+xlabel('predicted')
+ylabel('real')
+title('LM Scatter')
+
+subplot(2,2,3)
+
+predicted=reshape(sinsimtests.GLMtest,1,m*n);
+predicted=normalize_connections(predicted);
+
+scatter(predicted,real)
+xlabel('predicted')
+ylabel('real')
+title('GLM Scatter')
+
+subplot(2,2,4)
+
+predicted=reshape(sinsimtests.Covariance,1,m*n);
+predicted=normalize_connections(predicted);
+
+scatter(predicted,real)
+xlabel('predicted')
+ylabel('real')
+title('Covariance Scatter')
+
