@@ -1,9 +1,10 @@
-function processTEtoolbox_success(conn, modelID, blackrock, labviewpath, MCnevfile1, BCnevfile1, MCnevfile2, DCnevfile, expt_id, paramcode)
+function processTEtoolbox_success2(conn, modelID, blackrock, labviewpath, MCnevfile1, BCnevfile1, MCnevfile2, DCnevfile, expt_id, paramcode)
 
 %Keep the units of the network the same between recordings
 	%Load parameters
 	eval(paramcode);
 
+    
 	%Figure out units to use... above 5hz in all recordings
 	units = fetch(exec(conn, ['SELECT u1.unit FROM '...
 	'`experiment_tuning` et1 '...
@@ -42,6 +43,7 @@ function processTEtoolbox_success(conn, modelID, blackrock, labviewpath, MCnevfi
     nevpath1 = [blackrock MCnevfile1];
     nevpath2 = [blackrock BCnevfile1];
     nevpath3 = [blackrock DCnevfile];
+    nevpath4 = [blackrock MCnevfile2];
     
 	%Load parameters
 	eval(paramcode);
@@ -49,34 +51,49 @@ function processTEtoolbox_success(conn, modelID, blackrock, labviewpath, MCnevfi
     
 	%Preprocess data(nevfile, binsize, threshold, offset, fn_out, verbose, units)
     
-    errorhandle=1;
+ 
     
-	try
-    
-        processed1 = preprocess_spline(nevpath1, binsize, threshold, offset, [], [], units);
+        processed1 = preprocess_spline(nevpath1, binsize, threshold, offset, [], [], allunits);
         processed1 =extractSuccesses(processed1, conn, MCnevfile1, 0);
-
-        processed2 = preprocess_spline(nevpath2, binsize, threshold, offset, [], [], units);
+        
+        display (['length is:' num2str(processed1.binsize*length(processed1.binnedspikes)) ])
+        
+        if dur>(processed1.binsize*length(processed1.binnedspikes))
+            return
+        end
+        
+        processed2 = preprocess_spline(nevpath2, binsize, threshold, offset, [], [], allunits);
         processed2 =extractSuccesses(processed2, conn, BCnevfile1, 0);
-
-        processed3 = preprocess_spline(nevpath3, binsize, threshold, offset, [], [], units);
+        
+        display (['length is:' num2str(processed2.binsize*length(processed2.binnedspikes)) ])
+        
+        if dur>(processed2.binsize*length(processed2.binnedspikes))
+            return
+        end
+        
+        processed3 = preprocess_spline(nevpath3, binsize, threshold, offset, [], [], allunits);
         processed3 =extractSuccesses(processed3, conn, DCnevfile, 0);
-    
-    catch 
-        warning('Dimensional mismatch. Skipping')
-        errorhandle=0;
-        processed1.binsize=0;
-        processed1.binnedspikes=0;
-        processed2.binsize=0;
-        processed2.binnedspikes=0;
-        processed3.binsize=0;
-        processed3.binnedspikes=0;
-    end
+        
+        display (['length is:' num2str(processed3.binsize*length(processed3.binnedspikes)) ])
+        
+        if dur>(processed3.binsize*length(processed3.binnedspikes))
+            return
+        end
+        
+        processed4 = preprocess_spline(nevpath4, binsize, threshold, offset, [], [], allunits);
+        processed4 =extractSuccesses(processed4, conn, MCnevfile2, 0);
+        
+        display (['length is:' num2str(processed4.binsize*length(processed4.binnedspikes)) ])
+
+        if dur>(processed4.binsize*length(processed4.binnedspikes))
+            return
+        end
+        
     
     if dur<(processed1.binsize*length(processed1.binnedspikes)) && ...
        dur<(processed2.binsize*length(processed2.binnedspikes)) && ...
        dur<(processed3.binsize*length(processed3.binnedspikes)) && ...
-       errorhandle==1
+       dur<(processed4.binsize*length(processed4.binnedspikes))
    
         %Setup an analysis
         %Insert into analyses
@@ -93,18 +110,19 @@ function processTEtoolbox_success(conn, modelID, blackrock, labviewpath, MCnevfi
             processed1 = truncate_recording(processed1, dur);
             processed2 = truncate_recording(processed2, dur);
             processed3 = truncate_recording(processed3, dur);
+            processed4 = truncate_recording(processed4, dur);
 
         runTE(conn, analysis_id, modelID, blackrock, labviewpath, MCnevfile1, allunits, expt_id, paramcode,processed1,nevpath1);
-        %runTE(conn, analysis_id, modelID, blackrock, labviewpath, MCnevfile2, allunits, expt_id, paramcode);
         runTE(conn, analysis_id, modelID, blackrock, labviewpath, BCnevfile1, allunits, expt_id, paramcode,processed2,nevpath2);
         runTE(conn, analysis_id, modelID, blackrock, labviewpath, DCnevfile, allunits, expt_id, paramcode,processed3,nevpath3);
+        runTE(conn, analysis_id, modelID, blackrock, labviewpath, MCnevfile2, allunits, expt_id, paramcode,processed4,nevpath4);
     end
     
 end 
 
 function runTE(conn, analysis_id, modelID, blackrock, labviewpath, nevfile, units, expt_id, paramcode,processed,nevpath)
 	
-    
+    nU=length(units);
 	%Estimates the Transfer Entropy using the TE toolbox from Shinya Ito, Indiana University
     
     %==============================================================================

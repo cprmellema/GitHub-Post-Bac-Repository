@@ -1,13 +1,27 @@
-noisysimtests.real=J;
+shortnoisysimtests.real=J;
 
-binnedspikes=timematrix2spikes(spikes',10);
+save('shortnoisysimtests.mat','shortnoisysimtests')
 
-noisysimtests.Covariance = cov( binnedspikes );
+binnedspikes=timematrix2spikes(spikes',1);
+
+shortnoisysimtests.binnedspikes=binnedspikes;
+
+save('shortnoisysimtests.mat','shortnoisysimtests')
+
+shortnoisysimtests.Covariance = cov( binnedspikes );
+
+save('shortnoisysimtests.mat','shortnoisysimtests')
 
 a = GLMtest( binnedspikes, 'normal', 'identity', 20, 1 );
-noisysimtests.LMtest =a.test;
+shortnoisysimtests.LMtest =a.test;
+
+save('shortnoisysimtests.mat','shortnoisysimtests')
 
 b = GLMtest( binnedspikes, 'poisson', 'log', 20, 1 );
-noisysimtests.GLMtest =b.test;
+shortnoisysimtests.GLMtest =b.test;
 
-noisysimtests.TransferEntropy = TEfunction(binnedspikes,20);
+save('shortnoisysimtests.mat','shortnoisysimtests')
+
+shortnoisysimtests.TransferEntropy = TEfunction(binnedspikes,20);
+
+save('shortnoisysimtests.mat','shortnoisysimtests')

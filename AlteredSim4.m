@@ -19,7 +19,7 @@
 %--------------
 
 %PARAMETERS
-
+StaticJ=1;
 %simulation parameters
 p.filename='testage_sin_5min';
 p.file_output='./output_V4/';
@@ -27,22 +27,22 @@ online_plot_flag=1;
 p.stim_switch=1;
 p.load_groups_switch=1; %THIS now controls an architecture load
 p.load_path='./data.mat'; %must contain a structure "arch' with initial connectivity matrices J0,K0, J and K
-p.T_total=360;%seconds ' length of total sim
-p.T_batch_size=5;%seconds ' record things at every batch end
+p.T_total=180;%seconds ' length of total sim
+p.T_batch_size=p.T_total;%seconds ' record things at every batch end
 p.dt=0.5; %(ms) temporal rez
 p.num_batch=p.T_total/p.T_batch_size;
 p.num_batch_steps=p.T_batch_size*1000/p.dt;
 p.ref_t=0; %refractory period (ms) (for spike generation.
 
 %Stimulation switch
-p.stim_del=360000; %delay for stimulation (ms)
+p.stim_del=p.T_total*1000; %delay for stimulation (ms)
 p.num_del_steps=p.stim_del/p.dt;
 p.stim_size=10000; %Amount to rize rate of stimulated cells 
 p.rec_neuron=1; %neuron to trigger stimulation
 p.cols={'k','r','b'}; %colors for group-related plots
 
 %both numbers below need to be divisible by 3 for groups and pools
-p.N=120; %total number of neurons in net MUST BE DIVISIBLE BY 3
+p.N=30; %total number of neurons in net MUST BE DIVISIBLE BY 3
 
 %Correlogram parameters (to ba sampled from spiking)
 p.Plast_bin_center=-250:250; %resolution for building histograms of delta t's
@@ -51,7 +51,7 @@ p.Plast_bin_center=-250:250; %resolution for building histograms of delta t's
 p.net_rate=5; %(Hz) background rates for groups of neurons in network
 
 %EXTERNAL RATE FUNCTIONS (SINE)
-p.stim_type=2; %1=BOUTS 0=SINE 2=noise
+p.stim_type=0; %1=BOUTS 0=SINE 2=noise
 p.baseline=5; %(Hz)
 p.ext_freq=[2,2,2]; %envelope frequencies (Hz);
 p.ext_amplitude=[100,100,100]; %amplitude of envelope (Hz);
@@ -108,7 +108,7 @@ if p.load_groups_switch==1
 end
 
 load('Connections.mat')
-J=Connections;
+J=Connections(1:30,1:30);
 %_-_-_-_-_-_-_-_-_
 
 %generating delays
@@ -363,7 +363,9 @@ for batch=1:p.num_batch
                     pre_g=floor(3*(pre-1)/p.N)+1; %group assignment for current presynaptic cell
                     delta_t=t_now+p.dt/2-post_spk;
                     delta_t=delta_t(delta_t>0);
-                    J(n,pre)=max(J(n,pre)+p.eta*sum(p.W(delta_t,J(n,pre))),p.w_min);
+                    if StaticJ~=1
+                        J(n,pre)=max(J(n,pre)+p.eta*sum(p.W(delta_t,J(n,pre))),p.w_min);
+                    end
                     h=hist(delta_t,p.Plast_bin_center)';
                         h(1)=0;
                         h(end)=0;
@@ -394,7 +396,9 @@ for batch=1:p.num_batch
                         pre_spk=spikes(pre,1:spike_entry(pre)-1)+del;
                         delta_t=pre_spk-postime; %creating delta t vector
                         delta_t=delta_t(delta_t<=0);
-                        J(n,pre)=max(J(n,pre)+p.eta*sum(p.W(delta_t, J(n,pre))),p.w_min);
+                        if StaticJ~=1
+                          J(n,pre)=max(J(n,pre)+p.eta*sum(p.W(delta_t, J(n,pre))),p.w_min);
+                        end
                         h=hist(delta_t,p.Plast_bin_center)';
                         h(1)=0;
                         h(end)=0;
@@ -455,7 +459,8 @@ for batch=1:p.num_batch
             %$$$$$$$$$$$$$$$$$$$$
             %PLASTICITY
             %UPDATING J MATRIX WITH OUTGOING SPIKE RULE
-            if p.w_out~=0
+            if p.w_out~=0 && StaticJ~=1
+                
                 J(ind,:)=J(ind,:)+p.eta*p.w_out;
                 J=J.*p.J0;
             end
@@ -470,8 +475,10 @@ for batch=1:p.num_batch
         
         %PLASTICITY $$$$$$$$
         % Apply J bounds
+        if StaticJ~=1
         J=min(J,p.w_max*ones(size(J)));
         J=max(J,p.w_min*ones(size(J)));
+        end
         %$$$$$$$$$$$$$$$$$$$$$
         
         %TEMPORARY STORING_______________
